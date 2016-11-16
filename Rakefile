@@ -1,5 +1,6 @@
 MRUBY_CONFIG=File.expand_path(ENV["MRUBY_CONFIG"] || ".travis_build_config.rb")
-MRUBY_VERSION=ENV["MRUBY_VERSION"] || "1.2.0"
+MRUBY_VERSION=ENV["MRUBY_VERSION"] || "master"
+v = ENV["DEBUG"] ? "-v" : ""
 
 file :mruby do
   cmd =  "git clone --depth=1 git://github.com/mruby/mruby.git"
@@ -12,12 +13,12 @@ end
 
 desc "compile binary"
 task :compile => :mruby do
-  sh "cd mruby && MRUBY_CONFIG=#{MRUBY_CONFIG} rake all"
+  sh "cd mruby && MRUBY_CONFIG=#{MRUBY_CONFIG} rake all #{v}"
 end
 
 desc "test"
 task :test => :mruby do
-  sh "cd mruby && MRUBY_CONFIG=#{MRUBY_CONFIG} rake all test"
+  sh "cd mruby && MRUBY_CONFIG=#{MRUBY_CONFIG} rake all test #{v}"
 end
 
 desc "cleanup"
