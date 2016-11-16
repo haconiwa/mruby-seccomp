@@ -39,7 +39,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     file libseccomp_a(build) => seccomp_header(build) do
       sh "mkdir -p #{seccomp_objs_dir(build)}"
       Dir.chdir seccomp_dir(build) do
-        run_command ENV, "./configure --enable-static --prefix=#{seccomp_objs_dir(build)}"
+        run_command ENV, "./configure --enable-static --disable-shared --prefix=#{seccomp_objs_dir(build)}"
         run_command ENV, "make"
         run_command ENV, "make install"
       end
@@ -49,7 +49,8 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     file libmruby_a => libseccomp_a(build)
 
     self.cc.include_paths << File.dirname(seccomp_header(build))
-    self.linker.flags_before_libraries << libseccomp_a(build)
+    self.linker.library_paths << File.dirname(libseccomp_a(build))
+    self.linker.libraries << 'seccomp'
   end
 
   spec.bundle_seccomp
