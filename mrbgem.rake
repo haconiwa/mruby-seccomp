@@ -1,6 +1,18 @@
+require 'open3'
+require 'fileutils'
+
 MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   spec.license = 'MIT'
   spec.authors = 'Uchio Kondo'
+
+  def run_command env, command
+    STDOUT.sync = true
+    puts "EXEC\t[mruby-seccomp] #{command}"
+    Open3.popen2e(env, command) do |stdin, stdout, thread|
+      print stdout.read
+      fail "#{command} failed" if thread.value != 0
+    end
+  end
 
   def spec.bundle_seccomp
     version = '2.3.1'
@@ -17,19 +29,19 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     file seccomp_header(build) do
       unless File.exist? seccomp_dir(build)
         tmpdir = '/tmp'
-        sh "rm -rf #{tmpdir}/libseccomp-#{version}"
-        sh "mkdir -p #{File.dirname(seccomp_dir(build))}"
-        sh "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
-        sh "mv -f #{tmpdir}/libseccomp-#{version} #{seccomp_dir(build)}"
+        run_command ENV, "rm -rf #{tmpdir}/libseccomp-#{version}"
+        run_command ENV, "mkdir -p #{File.dirname(seccomp_dir(build))}"
+        run_command ENV, "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
+        run_command ENV, "mv -f #{tmpdir}/libseccomp-#{version} #{seccomp_dir(build)}"
       end
     end
 
     file libseccomp_a(build) => seccomp_header(build) do
       sh "mkdir -p #{seccomp_objs_dir(build)}"
       Dir.chdir seccomp_dir(build) do
-        sh "./configure --enable-static --prefix=#{seccomp_objs_dir(build)}"
-        sh "make"
-        sh "make install"
+        run_command ENV, "./configure --enable-static --prefix=#{seccomp_objs_dir(build)}"
+        run_command ENV, "make"
+        run_command ENV, "make install"
       end
     end
 
