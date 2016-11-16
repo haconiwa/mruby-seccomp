@@ -49,8 +49,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     file libmruby_a => libseccomp_a(build)
 
     self.cc.include_paths << File.dirname(seccomp_header(build))
-    self.linker.library_paths << File.dirname(libseccomp_a(build))
-    self.linker.libraries << 'seccomp'
+    self.linker.flags_before_libraries << libseccomp_a(build)
   end
 
   spec.bundle_seccomp
