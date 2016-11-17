@@ -19,5 +19,24 @@ module Seccomp
     def trap(syscall, *args)
       add_rule(Seccomp::SCMP_ACT_TRAP, syscall, *args)
     end
+
+    def fork(wait=false, &blk)
+      defined = begin Process; rescue NameError; false end
+      unless defined
+        raise "mruby-process is required to call this function"
+      end
+
+      ctx = self
+      pid = Process.fork do
+        ctx.load
+        blk.call
+      end
+      if wait
+        return Process.waitpid2(pid)
+      else
+        return pid
+      end
+    end
+    alias jailed_fork fork
   end
 end
