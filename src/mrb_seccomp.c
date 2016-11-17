@@ -18,6 +18,8 @@
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
+mrb_value mrb_seccomp_generate_syscall_table(mrb_state *mrb, mrb_value self);
+
 typedef struct {
   scmp_filter_ctx ctx;
   uint32_t def_action;
@@ -155,6 +157,8 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
 {
   struct RClass *parent, *context, *arg_cmp;
     parent = mrb_define_module(mrb, "Seccomp");
+    mrb_define_module_function(mrb, parent, "__gen_syscall_table", mrb_seccomp_generate_syscall_table, MRB_ARGS_NONE());
+
     context = mrb_define_class_under(mrb, parent, "Context", mrb->object_class);
     mrb_define_method(mrb, context, "initialize", mrb_seccomp_init, MRB_ARGS_REQ(1));
     mrb_define_method(mrb, context, "__add_rule", mrb_seccomp_add_rule, MRB_ARGS_REQ(3));

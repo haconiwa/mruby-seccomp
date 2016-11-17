@@ -11,6 +11,11 @@ file :mruby do
   sh cmd
 end
 
+desc "gen syscall table src"
+task :syscall_table do
+  sh "ruby src/gen_syscall_table.rb"
+end
+
 desc "compile binary"
 task :compile => :mruby do
   sh "cd mruby && MRUBY_CONFIG=#{MRUBY_CONFIG} rake all #{v}"
