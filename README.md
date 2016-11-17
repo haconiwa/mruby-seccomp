@@ -28,12 +28,19 @@ end
 context.allow(...) # if necessary out of block
 
 context.load # to load context to current process
-context.reset(:allow) # to reset
+
 
 Process.fork do
   # This process is also jailed
   ...
 end
+
+context.fork do
+  # This spawns a new process which is jailed
+  # but the parent process will be remain unloaded
+end
+
+context.reset(:allow) # to reset
 ```
 
 ## License
