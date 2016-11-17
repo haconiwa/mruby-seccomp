@@ -26,7 +26,7 @@ typedef struct {
 } mrb_seccomp_data;
 
 typedef struct {
-  struct scmp_arg_cmp *arg_cmp;
+  struct scmp_arg_cmp arg_cmp;
 } mrb_seccomp_arg_cmp_data;
 
 static void mrb_seccomp_free(mrb_state *mrb, void *p) {
@@ -37,7 +37,6 @@ static void mrb_seccomp_free(mrb_state *mrb, void *p) {
 
 static void mrb_seccomp_arg_cmp_free(mrb_state *mrb, void *p) {
   mrb_seccomp_arg_cmp_data *data = (mrb_seccomp_arg_cmp_data*)p;
-  free(data->arg_cmp);
   mrb_free(mrb, data);
 }
 
@@ -85,9 +84,9 @@ static mrb_value mrb_seccomp_arg_cmp_init(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "iii|i", &index, &op, &datum_a, &datum_b);
   ac_data = (mrb_seccomp_arg_cmp_data *)mrb_malloc(mrb, sizeof(mrb_seccomp_arg_cmp_data));
   if(datum_b < 0) {
-    ac_data->arg_cmp = &(SCMP_CMP((unsigned int)index, (int)op, (uint64_t)datum_a));
+    ac_data->arg_cmp = (SCMP_CMP((unsigned int)index, (int)op, (uint64_t)datum_a));
   } else {
-    ac_data->arg_cmp = &(SCMP_CMP((unsigned int)index, (int)op, (uint64_t)datum_a, (uint64_t)datum_b));
+    ac_data->arg_cmp = (SCMP_CMP((unsigned int)index, (int)op, (uint64_t)datum_a, (uint64_t)datum_b));
   }
 
   DATA_PTR(self) = ac_data;
@@ -96,7 +95,7 @@ static mrb_value mrb_seccomp_arg_cmp_init(mrb_state *mrb, mrb_value self)
 }
 
 #define MRB_SECCOMP_CMP_FIND(a, i)                                      \
-  (*((mrb_seccomp_arg_cmp_data *)(DATA_PTR(mrb_ary_ref(mrb, a, i))))->arg_cmp)
+  (((mrb_seccomp_arg_cmp_data *)(DATA_PTR(mrb_ary_ref(mrb, a, i))))->arg_cmp)
 
 static mrb_value mrb_seccomp_add_rule(mrb_state *mrb, mrb_value self)
 {
@@ -146,6 +145,9 @@ static mrb_value mrb_seccomp_add_rule(mrb_state *mrb, mrb_value self)
     break;
   }
   if(rc < 0) {
+#ifdef MRB_DEBUG
+    perror("seccomp_rule_add");
+#endif
     mrb_sys_fail(mrb, "seccomp_rule_add failed");
   }
   return mrb_fixnum_value(rc);
