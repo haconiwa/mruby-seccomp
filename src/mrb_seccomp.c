@@ -153,6 +153,29 @@ static mrb_value mrb_seccomp_add_rule(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(rc);
 }
 
+static mrb_value mrb_seccomp_load(mrb_state *mrb, mrb_value self)
+{
+  mrb_seccomp_data *data = DATA_PTR(self);
+  return mrb_fixnum_value(seccomp_load(data->ctx));
+}
+
+static mrb_value mrb_seccomp_reset(mrb_state *mrb, mrb_value self)
+{
+  mrb_seccomp_data *data = DATA_PTR(self);
+  mrb_int new_def_action;
+
+  mrb_get_args(mrb, "i", &new_def_action);
+
+  int ret = seccomp_reset(data->ctx, (uint32_t)new_def_action);
+  if(ret < 0) {
+#ifdef MRB_DEBUG
+    perror("seccomp_reset");
+#endif
+    mrb_sys_fail(mrb, "seccomp_reset failed");
+  }
+  return mrb_fixnum_value(ret);
+}
+
 #define MRB_SECCOMP_EXPORT_CONST(c) mrb_define_const(mrb, parent, #c, mrb_fixnum_value(c))
 
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
@@ -164,6 +187,8 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
     context = mrb_define_class_under(mrb, parent, "Context", mrb->object_class);
     mrb_define_method(mrb, context, "initialize", mrb_seccomp_init, MRB_ARGS_REQ(1));
     mrb_define_method(mrb, context, "__add_rule", mrb_seccomp_add_rule, MRB_ARGS_REQ(3));
+    mrb_define_method(mrb, context, "load", mrb_seccomp_load, MRB_ARGS_NONE());
+    mrb_define_method(mrb, context, "reset", mrb_seccomp_reset, MRB_ARGS_REQ(1));
     /* mrb_define_method(mrb, seccomp, "hello", mrb_seccomp_hello, MRB_ARGS_NONE()); */
     /* mrb_define_class_method(mrb, seccomp, "hi", mrb_seccomp_hi, MRB_ARGS_NONE()); */
 
