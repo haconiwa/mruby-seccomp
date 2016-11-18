@@ -20,6 +20,14 @@ module Seccomp
       add_rule(Seccomp::SCMP_ACT_TRAP, syscall, *args)
     end
 
+    def load!
+      ret = load
+      if ret < 0
+        raise("Could not load seccomp context to current process - seccomp_load failed")
+      end
+      ret
+    end
+
     def fork(wait=false, &blk)
       defined = begin Process; rescue NameError; false end
       unless defined
