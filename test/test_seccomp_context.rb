@@ -14,7 +14,7 @@ assert("Seccomp::Context#kill") do
 
   pid = Process.fork do
     ctx.load
-    exec "/usr/bin/uname", "-a"
+    exec "/usr/bin/env", "uname", "-a"
   end
   pid, ret = Process.waitpid2(pid)
 
