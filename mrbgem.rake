@@ -1,9 +1,13 @@
 require 'open3'
 require 'fileutils'
+$LOAD_PATH << File.expand_path('../mrblib', __FILE__)
 
 MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
+  require 'seccomp/versions'
+
   spec.license = 'MIT'
   spec.authors = 'Uchio Kondo'
+  spec.version = Seccomp::VERSION
 
   def run_command env, command
     STDOUT.sync = true
@@ -15,7 +19,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   end
 
   def spec.bundle_seccomp
-    version = '2.3.1'
+    version = Seccomp::LIBSECCOMP_VERSION
 
     def seccomp_dir(b); "#{b.build_dir}/vendor/argtable3"; end
     def seccomp_objs_dir(b); "#{seccomp_dir(b)}/.objs"; end
