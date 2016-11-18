@@ -7,8 +7,13 @@ pid = Process.fork do
   end
   context.load
 
-  # Then hit `uname`
-  p "nodename: " + Uname.nodename
+  begin
+    # Then hit `uname`
+    p "nodename: " + Uname.nodename
+  rescue => e
+    puts "Catch as error: " + e.message
+    puts "Trapping is OK"
+  end
 end
 
 p(Process.waitpid2 pid)
