@@ -9,14 +9,19 @@
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/array.h>
+#include <mruby/variable.h>
 #include <mruby/error.h>
 
 #include <stdlib.h>
+#include <signal.h>
 #include <seccomp.h>
 
 #include "mrb_seccomp.h"
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
+
+/* A file-global mrb_state* to use in signal */
+static mrb_state *sig_mrb = NULL;
 
 mrb_value mrb_seccomp_generate_syscall_table(mrb_state *mrb, mrb_value self);
 
@@ -176,6 +181,42 @@ static mrb_value mrb_seccomp_reset(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(ret);
 }
 
+static void mrb_seccomp_sigaction(int signo, siginfo_t *siginfo, void *_unused)
+{
+  if(!sig_mrb) {
+    abort();
+    return;
+  }
+
+  mrb_state *mrb = sig_mrb;
+  struct RClass *seccomp = mrb_module_get(mrb, "Seccomp");
+  mrb_value proc = mrb_iv_get(mrb, mrb_obj_value(seccomp), mrb_intern_lit(mrb, "__ontrap_proc"));
+  mrb_funcall(mrb, proc, "call", 1, mrb_fixnum_value(siginfo->si_syscall));
+}
+
+static mrb_value mrb_seccomp_on_trap(mrb_state *mrb, mrb_value self)
+{
+  mrb_value block;
+  mrb_get_args(mrb, "&", &block);
+
+  if(!sig_mrb) {
+    sig_mrb = mrb;
+    struct sigaction action = {
+      .sa_sigaction = mrb_seccomp_sigaction,
+      .sa_flags = SA_SIGINFO,
+    };
+    sigemptyset(&action.sa_mask);
+
+    if (sigaction(SIGSYS, &action, NULL) < 0) {
+      mrb_sys_fail(mrb, "sigaction failed");
+    }
+  }
+
+  struct RClass *seccomp = mrb_module_get(mrb, "Seccomp");
+  mrb_iv_set(mrb, mrb_obj_value(seccomp), mrb_intern_lit(mrb, "__ontrap_proc"), block);
+  return mrb_true_value();
+}
+
 #define MRB_SECCOMP_EXPORT_CONST(c) mrb_define_const(mrb, parent, #c, mrb_fixnum_value(c))
 
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
@@ -183,6 +224,7 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   struct RClass *parent, *context, *arg_cmp;
     parent = mrb_define_module(mrb, "Seccomp");
     mrb_define_module_function(mrb, parent, "__gen_syscall_table", mrb_seccomp_generate_syscall_table, MRB_ARGS_NONE());
+    mrb_define_module_function(mrb, parent, "on_trap", mrb_seccomp_on_trap, MRB_ARGS_BLOCK());
 
     context = mrb_define_class_under(mrb, parent, "Context", mrb->object_class);
     mrb_define_method(mrb, context, "initialize", mrb_seccomp_init, MRB_ARGS_REQ(1));

@@ -8,6 +8,14 @@ module Seccomp
       __syscall__table[name.to_s]
     end
 
+    def syscall_to_tupple(i)
+      __syscall__table.find{|p| p[1] == i }
+    end
+
+    def syscall_to_name(i)
+      syscall_to_tupple(i)[0]
+    end
+
     def to_action(action)
       return action if action.is_a?(Integer)
       case action
