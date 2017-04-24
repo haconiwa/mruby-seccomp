@@ -15,6 +15,8 @@
 #include <mruby/variable.h>
 
 #include <seccomp.h>
+#include <signal.h>
+#include <stdlib.h>
 
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb);
 

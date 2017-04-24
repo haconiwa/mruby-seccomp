@@ -7,8 +7,6 @@
 */
 
 #include "mrb_seccomp.h"
-#include <signal.h>
-#include <stdlib.h>
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
