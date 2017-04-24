@@ -14,6 +14,18 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 
+#ifdef MRB_SECCOMP_DEBUG
+#define _log_p(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define _log_p(fmt, ...)                                                       \
+  if (0)                                                                       \
+  printf(fmt, ##__VA_ARGS__)
+#endif
+
+#define MRB_PTRACE_DEFAULT_OPT                                                 \
+  (PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE |            \
+   PTRACE_O_TRACEEXIT | PTRACE_O_TRACESECCOMP)
+
 static void mrb_seccomp_userdata_free(mrb_state *mrb, void *p) {
   uint16_t *data = (uint16_t *)p;
   if (data)
@@ -57,10 +69,24 @@ static int mrb_seccomp_on_tracer_trap(mrb_state *mrb, mrb_value hook,
     mrb_sys_fail(mrb, "ptrace(PTRACE_GETREGS...");
   }
 
-  mrb_value args[2];
+  mrb_value args[3];
   args[0] = mrb_fixnum_value((int)regs.orig_rax); // syscall no
-  args[1] = mrb_fixnum_value((int)msg);           // userdata
-  mrb_yield_argv(mrb, hook, 2, args);
+  args[1] = mrb_fixnum_value((int)child);         // pid
+  args[2] = mrb_fixnum_value((int)msg);           // userdata
+  mrb_yield_argv(mrb, hook, 3, args);
+  return 0;
+}
+
+static int mrb_seccomp_on_tracer_fork(mrb_state *mrb, pid_t child) {
+  unsigned long msg;
+  pid_t pid;
+
+  if (ptrace(PTRACE_GETEVENTMSG, child, NULL, &msg) != 0) {
+    mrb_sys_fail(mrb, "ptrace(PTRACE_GETEVENTMSG...");
+  }
+  pid = (pid_t)msg;
+  _log_p("Debug: tracing pid %d\n", pid);
+
   return 0;
 }
 
@@ -77,7 +103,7 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
   }
   waitpid(pid, &status, 0);
 
-  if (ptrace(PTRACE_SETOPTIONS, pid, NULL, (void *)PTRACE_O_TRACESECCOMP) ==
+  if (ptrace(PTRACE_SETOPTIONS, pid, NULL, (void *)MRB_PTRACE_DEFAULT_OPT) ==
       -1) {
     mrb_sys_fail(mrb, "ptrace(PTRACE_SETOPTIONS...");
   }
@@ -85,22 +111,38 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
     mrb_sys_fail(mrb, "ptrace(PTRACE_CONT...");
   }
 
-  child = pid;
+  int children_exit = FALSE;
   while (1) {
-    child = waitpid(child, &status, WUNTRACED | WCONTINUED);
+    child = waitpid(-1, &status, WUNTRACED | WCONTINUED | __WALL);
     if (child == -1) {
       mrb_sys_fail(mrb, "waitpid");
     }
 
     if (WIFEXITED(status)) {
-      return mrb_str_new_lit(mrb, "exited");
+      if (child == pid) {
+        return mrb_str_new_lit(mrb, "exited");
+      } else {
+        children_exit = TRUE;
+      }
     } else if (WIFSIGNALED(status)) {
-      return mrb_str_new_lit(mrb, "signaled");
+      if (child == pid) {
+        return mrb_str_new_lit(mrb, "signaled");
+      } else {
+        children_exit = TRUE;
+      }
     } else if (WIFSTOPPED(status)) {
-      if (WSTOPSIG(status) == SIGTRAP &&
-          MRB_PTRACE_EVENT(status) == PTRACE_EVENT_SECCOMP) {
-        if (mrb_seccomp_on_tracer_trap(mrb, hook, child) < 0) {
-          mrb_raise(mrb, E_RUNTIME_ERROR, "Something is wrong in trap event");
+      if (WSTOPSIG(status) == SIGTRAP) {
+        if (MRB_PTRACE_EVENT(status) == PTRACE_EVENT_FORK ||
+            MRB_PTRACE_EVENT(status) == PTRACE_EVENT_VFORK) {
+          _log_p("Debug: fork is invoked\n");
+          if (mrb_seccomp_on_tracer_fork(mrb, child) < 0) {
+            mrb_raise(mrb, E_RUNTIME_ERROR,
+                      "Something is wrong when grandchildren fork");
+          }
+        } else if (MRB_PTRACE_EVENT(status) == PTRACE_EVENT_SECCOMP) {
+          if (mrb_seccomp_on_tracer_trap(mrb, hook, child) < 0) {
+            mrb_raise(mrb, E_RUNTIME_ERROR, "Something is wrong in trap event");
+          }
         }
       }
     } else if (WIFCONTINUED(status)) {
@@ -110,10 +152,13 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
     }
 
     if (ptrace(PTRACE_CONT, child, NULL, NULL) < 0) {
-      kill(child, SIGKILL);
-      mrb_raisef(mrb, E_RUNTIME_ERROR,
-                 "Cannot continue process: %d. Force to kill", child);
+      if (!children_exit) {
+        mrb_raisef(mrb, E_RUNTIME_ERROR,
+                   "Cannot continue process: %d. Force to kill",
+                   mrb_fixnum_value(child));
+      }
     }
+    children_exit = FALSE;
   }
 }
 

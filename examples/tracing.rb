@@ -5,13 +5,14 @@ pid = Process.fork do
   end
   context.load
 
-  # uname will be called 4 times: 1 in bash, 3 in uname(1)
-  exec '/bin/bash', '-c', 'exec uname -a'
+  # uname will be called 10 times: 1 in bash, 3 * 3 in uname(1)
+  exec '/bin/bash', '-c', 'uname -a; uname -a; uname -a'
+  #exec '/bin/bash', '-c', 'exec uname -a'
 end
 
-ret = Seccomp.start_trace(pid) do |syscall, ud|
+ret = Seccomp.start_trace(pid) do |syscall, _pid, ud|
   name = Seccomp.syscall_to_name(syscall)
-  puts "[#{pid}]: syscall #{name}(##{syscall}) called. (ud: #{ud})"
+  puts "[#{_pid}]: syscall #{name}(##{syscall}) called. (ud: #{ud})"
 end
 
 p(ret)
