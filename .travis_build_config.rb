@@ -7,5 +7,6 @@ MRuby::Build.new do |conf|
   conf.gem github: 'haconiwa/mruby-exec'
 
   conf.gem '../mruby-seccomp'
+  conf.enable_debug
   conf.enable_test
 end

@@ -22,30 +22,43 @@ assert("Seccomp::Context#kill") do
   assert_equal(ret.termsig, 31) # SYGSIS in Linux
 end
 
-assert("Seccomp.trap") do
-  r, w = IO.pipe
+assert("Seccomp::Context.new") do
+  ctx = Seccomp::Context.new Seccomp::SCMP_ACT_KILL
+  assert_true(ctx.is_a? Seccomp::Context)
+end
+
+assert("Seccomp.start_trace") do
   pid = Process.fork do
-    r.close
-
     ctx = Seccomp.new(default: :allow) do |rule|
-      rule.trap(:uname)
+      rule.trace(:uname, 0)
     end
-    Seccomp.on_trap do |sc|
-      data = Seccomp.syscall_to_tupple(sc)
-      w.write data.inspect
-      w.close
-    end
-
     ctx.load
-    begin
-      "nodename: " + Uname.nodename
-    rescue RuntimeError => e
-      e
-    end
+    exec '/bin/bash', '-c', 'exec uname -a >/dev/null'
   end
-  w.close
-  ret = r.read
-  assert_equal('["uname", 63]', ret)
 
-  Process.waitpid2(pid)
+  count = 0
+  ret = Seccomp.start_trace(pid) do |syscall, ud|
+    count += 1
+  end
+
+  assert_equal "exited", ret
+  assert_equal 4, count
+end
+
+assert("Seccomp.start_trace with forking processes") do
+  pid = Process.fork do
+    ctx = Seccomp.new(default: :allow) do |rule|
+      rule.trace(:uname, 0)
+    end
+    ctx.load
+    exec '/bin/bash', '-c', 'for i in 1 2 3; do uname -a; done'
+  end
+
+  count = 0
+  ret = Seccomp.start_trace(pid) do |syscall, ud|
+    count += 1
+  end
+
+  assert_equal "exited", ret
+  assert_equal 10, count
 end

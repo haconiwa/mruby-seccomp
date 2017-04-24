@@ -16,7 +16,11 @@ module Seccomp
       syscall_to_tupple(i)[0]
     end
 
-    def to_action(action)
+    def SCMP_ACT_TRACE(ud)
+      Seccomp::Tracer.new(ud)
+    end
+
+    def to_action(action, *args)
       return action if action.is_a?(Integer)
       case action
       when :kill,  :SCMP_ACT_KILL
@@ -28,7 +32,7 @@ module Seccomp
       when :errno, :SCMP_ACT_ERRNO
         raise(NotImplementedAError, "Unsupported yet: #{action}")
       when :trace, :SCMP_ACT_TRACE
-        raise(NotImplementedAError, "Unsupported yet: #{action}")
+        Seccomp::SCMP_ACT_TRACE(args[0])
       else
         raise(ArgumentError, "Invalid action name: #{action}")
       end
@@ -45,7 +49,12 @@ module Seccomp
         raise ArgumentError, "Please specify default action by `default: ...'"
       end
 
-      ctx = Seccomp::Context.new(to_action(def_action))
+      ctx = nil
+      if def_action.is_a?(Array)
+        ctx = Seccomp::Context.new(to_action(*def_action))
+      else
+        ctx = Seccomp::Context.new(to_action(def_action))
+      end
       yield(ctx) if block_given?
 
       return ctx
