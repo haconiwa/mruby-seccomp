@@ -20,6 +20,14 @@ module Seccomp
       add_rule(Seccomp::SCMP_ACT_TRAP, syscall, *args)
     end
 
+    def trace(syscall, userdata, *args)
+      new_args = []
+      args.each_with_index do |a, i|
+        new_args << a.to_real_operator(i)
+      end
+      __add_rule(Seccomp.to_action(:trace, userdata), Seccomp.to_syscall(syscall), new_args)
+    end
+
     def load!
       ret = load
       if ret < 0

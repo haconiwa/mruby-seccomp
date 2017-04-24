@@ -6,18 +6,9 @@
 ** See Copyright Notice in LICENSE
 */
 
-#include <mruby.h>
-#include <mruby/array.h>
-#include <mruby/class.h>
-#include <mruby/data.h>
-#include <mruby/error.h>
-#include <mruby/variable.h>
-
-#include <seccomp.h>
+#include "mrb_seccomp.h"
 #include <signal.h>
 #include <stdlib.h>
-
-#include "mrb_seccomp.h"
 
 #define DONE mrb_gc_arena_restore(mrb, 0);
 
@@ -35,7 +26,8 @@ typedef struct { struct scmp_arg_cmp arg_cmp; } mrb_seccomp_arg_cmp_data;
 
 static void mrb_seccomp_free(mrb_state *mrb, void *p) {
   mrb_seccomp_data *data = (mrb_seccomp_data *)p;
-  seccomp_release(data->ctx);
+  if (data && data->ctx)
+    seccomp_release(data->ctx);
   mrb_free(mrb, data);
 }
 
@@ -52,9 +44,12 @@ static const struct mrb_data_type mrb_seccomp_arg_cmp_data_type = {
     "mrb_seccomp_arg_cmp_data", mrb_seccomp_arg_cmp_free,
 };
 
+uint32_t mrb_seccomp_tracer_to_action(mrb_state *mrb, mrb_value self);
+
 static mrb_value mrb_seccomp_init(mrb_state *mrb, mrb_value self) {
   mrb_seccomp_data *ctx_data;
-  mrb_int def_action;
+  mrb_value def_action;
+  uint32_t def_action_value;
 
   ctx_data = (mrb_seccomp_data *)DATA_PTR(self);
   if (ctx_data) {
@@ -63,10 +58,20 @@ static mrb_value mrb_seccomp_init(mrb_state *mrb, mrb_value self) {
   DATA_TYPE(self) = &mrb_seccomp_data_type;
   DATA_PTR(self) = NULL;
 
-  mrb_get_args(mrb, "i", &def_action);
+  mrb_get_args(mrb, "o", &def_action);
+  if (mrb_fixnum_p(def_action)) {
+    def_action_value = (uint32_t)mrb_fixnum(def_action);
+  } else {
+    struct RClass *parent = mrb_module_get(mrb, "Seccomp");
+    struct RClass *tracer = mrb_class_get_under(mrb, parent, "Tracer");
+    if (!mrb_obj_is_kind_of(mrb, def_action, tracer)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "Invalid object type for action");
+    }
+    def_action_value = mrb_seccomp_tracer_to_action(mrb, def_action);
+  }
   ctx_data = (mrb_seccomp_data *)mrb_malloc(mrb, sizeof(mrb_seccomp_data));
-  ctx_data->ctx = seccomp_init((uint32_t)def_action);
-  ctx_data->def_action = (uint32_t)def_action;
+  ctx_data->ctx = seccomp_init(def_action_value);
+  ctx_data->def_action = def_action_value;
   DATA_PTR(self) = ctx_data;
 
   return self;
@@ -107,11 +112,21 @@ static mrb_value mrb_seccomp_add_rule(mrb_state *mrb, mrb_value self) {
   uint32_t action;
   int syscall;
   int rc;
-  mrb_int _action, _syscall;
-  mrb_value args; // Array
+  mrb_int _syscall;
+  mrb_value _action, // Fixnum or Seccomp::Tracer
+      args;          // Array
 
-  mrb_get_args(mrb, "iiA", &_action, &_syscall, &args);
-  action = (uint32_t)_action;
+  mrb_get_args(mrb, "oiA", &_action, &_syscall, &args);
+  if (mrb_fixnum_p(_action)) {
+    action = (uint32_t)mrb_fixnum(_action);
+  } else {
+    struct RClass *parent = mrb_module_get(mrb, "Seccomp");
+    struct RClass *tracer = mrb_class_get_under(mrb, parent, "Tracer");
+    if (!mrb_obj_is_kind_of(mrb, _action, tracer)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "Invalid object type for action");
+    }
+    action = mrb_seccomp_tracer_to_action(mrb, _action);
+  }
   syscall = (int)_syscall;
   int len = RARRAY_LEN(args);
 
@@ -227,6 +242,8 @@ static mrb_value mrb_seccomp_on_trap(mrb_state *mrb, mrb_value self) {
 #define MRB_SECCOMP_EXPORT_CONST(c)                                            \
   mrb_define_const(mrb, parent, #c, mrb_fixnum_value(c))
 
+void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
+
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb) {
   struct RClass *parent, *context, *arg_cmp;
   parent = mrb_define_module(mrb, "Seccomp");
@@ -250,6 +267,9 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb) {
   MRB_SET_INSTANCE_TT(arg_cmp, MRB_TT_DATA);
   mrb_define_method(mrb, arg_cmp, "initialize", mrb_seccomp_arg_cmp_init,
                     MRB_ARGS_ARG(3, 4));
+
+  mrb_mruby_seccomp_tracing_init(mrb, parent);
+
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_ALLOW);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_TRAP);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_KILL);
