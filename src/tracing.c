@@ -14,6 +14,11 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 
+/* At CentOS 7 there seems no definition */
+#ifndef PTRACE_EVENT_SECCOMP
+#define PTRACE_EVENT_SECCOMP 7
+#endif
+
 #ifdef MRB_SECCOMP_DEBUG
 #define _log_p(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #else
