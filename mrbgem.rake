@@ -21,7 +21,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   def spec.bundle_seccomp
     version = Seccomp::LIBSECCOMP_VERSION
 
-    def seccomp_dir(b); "#{b.build_dir}/vendor/argtable3"; end
+    def seccomp_dir(b); "#{b.build_dir}/vendor/libseccomp"; end
     def seccomp_objs_dir(b); "#{seccomp_dir(b)}/.objs"; end
     def seccomp_header(b); "#{seccomp_dir(b)}/include/seccomp.h"; end
     def libseccomp_a(b); libfile "#{seccomp_objs_dir(b)}/lib/libseccomp"; end
