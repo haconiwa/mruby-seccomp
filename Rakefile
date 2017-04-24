@@ -32,4 +32,9 @@ task :clean do
   sh "cd mruby && rake deep_clean"
 end
 
+desc "memleak test"
+task :memtest => :compile do
+  sh "valgrind --leak-check=full ./mruby/bin/mruby -e '100.times { c = Seccomp.new(default: :allow); c.kill(:mkdir, Seccomp::ARG(:>=, 0), Seccomp::ARG(:>=, 0)); c.load }'"
+end
+
 task :default => :compile
