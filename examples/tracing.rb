@@ -8,6 +8,7 @@ pid = Process.fork do
   # uname will be called 10 times: 1 in bash, 3 * 3 in uname(1)
   exec '/bin/bash', '-c', 'uname -a; uname -a; uname -a'
   #exec '/bin/bash', '-c', 'exec uname -a'
+  #exec '/bin/bash', '-l'
 end
 
 ret = Seccomp.start_trace(pid) do |syscall, _pid, ud|

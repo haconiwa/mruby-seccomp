@@ -44,3 +44,21 @@ assert("Seccomp.start_trace") do
   assert_equal "exited", ret
   assert_equal 4, count
 end
+
+assert("Seccomp.start_trace with forking processes") do
+  pid = Process.fork do
+    ctx = Seccomp.new(default: :allow) do |rule|
+      rule.trace(:uname, 0)
+    end
+    ctx.load
+    exec '/bin/bash', '-c', 'for i in 1 2 3; do uname -a; done'
+  end
+
+  count = 0
+  ret = Seccomp.start_trace(pid) do |syscall, ud|
+    count += 1
+  end
+
+  assert_equal "exited", ret
+  assert_equal 10, count
+end
