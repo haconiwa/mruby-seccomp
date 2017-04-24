@@ -45,7 +45,7 @@ module Seccomp
         raise ArgumentError, "Please specify default action by `default: ...'"
       end
 
-      ctx = Context.new(to_action(def_action))
+      ctx = Seccomp::Context.new(to_action(def_action))
       yield(ctx) if block_given?
 
       return ctx
