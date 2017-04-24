@@ -85,8 +85,9 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
     mrb_sys_fail(mrb, "ptrace(PTRACE_CONT...");
   }
 
+  child = pid;
   while (1) {
-    child = waitpid(-1, &status, WUNTRACED | WCONTINUED);
+    child = waitpid(child, &status, WUNTRACED | WCONTINUED);
     if (child == -1) {
       mrb_sys_fail(mrb, "waitpid");
     }
@@ -109,7 +110,7 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
     }
 
     if (ptrace(PTRACE_CONT, child, NULL, NULL) < 0) {
-      kill(pid, SIGKILL);
+      kill(child, SIGKILL);
       mrb_raisef(mrb, E_RUNTIME_ERROR,
                  "Cannot continue process: %d. Force to kill", child);
     }
