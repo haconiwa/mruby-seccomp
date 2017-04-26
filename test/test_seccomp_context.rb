@@ -51,7 +51,7 @@ assert("Seccomp.start_trace with forking processes") do
       rule.trace(:uname, 0)
     end
     ctx.load
-    exec '/bin/bash', '-c', 'for i in 1 2 3; do uname -a; done'
+    exec '/bin/bash', '-c', 'for i in 1 2 3; do uname -a >/dev/null ; done'
   end
 
   count = 0
