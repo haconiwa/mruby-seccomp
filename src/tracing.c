@@ -74,6 +74,8 @@ static int mrb_seccomp_on_tracer_trap(mrb_state *mrb, mrb_value hook,
     mrb_sys_fail(mrb, "ptrace(PTRACE_GETREGS...");
   }
 
+  ptrace(PTRACE_DETACH, child, NULL, NULL);
+
   mrb_value args[3];
   args[0] = mrb_fixnum_value((int)regs.orig_rax); // syscall no
   args[1] = mrb_fixnum_value((int)child);         // pid
@@ -148,6 +150,7 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
           if (mrb_seccomp_on_tracer_trap(mrb, hook, child) < 0) {
             mrb_raise(mrb, E_RUNTIME_ERROR, "Something is wrong in trap event");
           }
+          return self;
         }
       }
     } else if (WIFCONTINUED(status)) {
