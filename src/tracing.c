@@ -74,6 +74,12 @@ static int mrb_seccomp_on_tracer_trap(mrb_state *mrb, mrb_value hook,
     mrb_sys_fail(mrb, "ptrace(PTRACE_GETREGS...");
   }
 
+  // Force to suspend installed seccomp
+  // to prevent ENOSYS
+  if (ptrace(PTRACE_SETOPTIONS, child, NULL, PTRACE_O_SUSPEND_SECCOMP) < 0) {
+    mrb_warn(mrb, "suspending seccomp failed");
+    return -1;
+  }
   ptrace(PTRACE_DETACH, child, NULL, NULL);
 
   mrb_value args[3];
