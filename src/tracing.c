@@ -63,7 +63,7 @@ uint32_t mrb_seccomp_tracer_to_action(mrb_state *mrb, mrb_value self) {
 }
 
 static int mrb_seccomp_on_tracer_trap(mrb_state *mrb, mrb_value hook,
-                                      pid_t child) {
+                                      pid_t child, int detach) {
   unsigned long msg;
   struct user_regs_struct regs;
 
@@ -73,9 +73,9 @@ static int mrb_seccomp_on_tracer_trap(mrb_state *mrb, mrb_value hook,
   if (ptrace(PTRACE_GETREGS, child, NULL, &regs) != 0) {
     mrb_sys_fail(mrb, "ptrace(PTRACE_GETREGS...");
   }
-
-  ptrace(PTRACE_DETACH, child, NULL, NULL);
-
+  if (detach) {
+    ptrace(PTRACE_DETACH, child, NULL, NULL);
+  }
   mrb_value args[3];
   args[0] = mrb_fixnum_value((int)regs.orig_rax); // syscall no
   args[1] = mrb_fixnum_value((int)child);         // pid
@@ -100,7 +100,7 @@ static int mrb_seccomp_on_tracer_fork(mrb_state *mrb, pid_t child) {
 #define MRB_PTRACE_EVENT(status) (((status >> 8) ^ SIGTRAP) >> 8)
 
 /* This method is implemented unser Seccomp root module */
-static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
+static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int detach) {
   mrb_int pid;
   mrb_value hook;
   int status, child;
@@ -147,10 +147,12 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
                       "Something is wrong when grandchildren fork");
           }
         } else if (MRB_PTRACE_EVENT(status) == PTRACE_EVENT_SECCOMP) {
-          if (mrb_seccomp_on_tracer_trap(mrb, hook, child) < 0) {
+          if (mrb_seccomp_on_tracer_trap(mrb, hook, child, detach) < 0) {
             mrb_raise(mrb, E_RUNTIME_ERROR, "Something is wrong in trap event");
           }
-          return self;
+	  if (detach) {
+            return self;
+	  }
         }
       }
     } else if (WIFCONTINUED(status)) {
@@ -169,6 +171,13 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self) {
     children_exit = FALSE;
   }
 }
+static mrb_value mrb_seccomp_ptrace(mrb_state *mrb, mrb_value self){
+  return mrb_seccomp_start_ptrace(mrb, self, FALSE);
+}
+
+static mrb_value mrb_seccomp_ptrace_detach(mrb_state *mrb, mrb_value self){
+  return mrb_seccomp_start_ptrace(mrb, self, TRUE);
+}
 
 void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent) {
   struct RClass *tracer =
@@ -176,8 +185,10 @@ void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent) {
   MRB_SET_INSTANCE_TT(tracer, MRB_TT_DATA);
   mrb_define_method(mrb, tracer, "initialize", mrb_seccomp_tracer_init,
                     MRB_ARGS_REQ(1));
-
   mrb_define_module_function(mrb, parent, "start_trace",
-                             mrb_seccomp_start_ptrace,
+                             mrb_seccomp_ptrace,
+                             MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, parent, "start_trace_detach",
+                             mrb_seccomp_ptrace_detach,
                              MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
 }
