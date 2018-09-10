@@ -1,10 +1,10 @@
 #include <mruby.h>
 #include <mruby/data.h>
-#include <mruby/string.h>
 #include <mruby/hash.h>
+#include <mruby/string.h>
 #include <seccomp.h>
 
-#define MRB_SECCOMP_SET_SYSCALL(s)                                        mrb_hash_set(mrb, table, mrb_str_new_lit(mrb, #s), mrb_fixnum_value(SCMP_SYS(s)))
+#define MRB_SECCOMP_SET_SYSCALL(s) mrb_hash_set(mrb, table, mrb_str_new_lit(mrb, #s), mrb_fixnum_value(SCMP_SYS(s)))
 
 mrb_value mrb_seccomp_generate_syscall_table(mrb_state *mrb, mrb_value self)
 {
@@ -1301,7 +1301,6 @@ mrb_value mrb_seccomp_generate_syscall_table(mrb_state *mrb, mrb_value self)
 #ifdef __NR_bpf
   MRB_SECCOMP_SET_SYSCALL(bpf);
 #endif
-
 
   return table;
 }
