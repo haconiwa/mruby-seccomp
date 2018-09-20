@@ -120,23 +120,27 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int de
   if (ptrace(PTRACE_CONT, pid, NULL, NULL) == -1) {
     mrb_sys_fail(mrb, "ptrace(PTRACE_CONT...");
   }
+  struct RClass *status_cls = mrb_class_get_under(mrb, mrb_module_get(mrb, "Process"), "Status");
 
   int children_exit = FALSE;
   while (1) {
     child = waitpid(-1, &status, WUNTRACED | WCONTINUED | __WALL);
+
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"),
+               mrb_funcall(mrb, mrb_obj_value(status_cls), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(status)));
     if (child == -1) {
       mrb_sys_fail(mrb, "waitpid");
     }
 
     if (WIFEXITED(status)) {
       if (child == pid) {
-        return mrb_str_new_lit(mrb, "exited");
+        return mrb_fixnum_value(pid);
       } else {
         children_exit = TRUE;
       }
     } else if (WIFSIGNALED(status)) {
       if (child == pid) {
-        return mrb_str_new_lit(mrb, "signaled");
+        return mrb_fixnum_value(pid);
       } else {
         children_exit = TRUE;
       }
