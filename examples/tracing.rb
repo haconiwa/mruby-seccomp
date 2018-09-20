@@ -17,4 +17,5 @@ ret = Seccomp.start_trace(pid) do |syscall, _pid, ud|
   puts "[#{_pid}]: syscall #{name}(##{syscall}) called. (ud: #{ud})"
 end
 
+p ret.exited?
 p $?.exited?

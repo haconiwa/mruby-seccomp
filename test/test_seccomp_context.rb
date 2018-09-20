@@ -41,6 +41,7 @@ assert("Seccomp.start_trace") do
     count += 1
   end
   assert_true ret.exited?
+  assert_true $?.exited?
   assert_equal 4, count
 end
 
@@ -58,6 +59,7 @@ assert("Seccomp.start_trace with forking processes") do
     count += 1
   end
   assert_true ret.exited?
+  assert_true $?.exited?
   assert_equal 10, count
 end
 
@@ -75,5 +77,6 @@ assert("Seccomp.start_trace_detach") do
     count += 1
   end
   assert_false ret.exited?
+  assert_false $?.exited?
   assert_equal 1, count
 end

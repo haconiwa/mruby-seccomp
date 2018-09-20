@@ -105,7 +105,9 @@ static int mrb_seccomp_on_tracer_fork(mrb_state *mrb, pid_t child)
 static mrb_value mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int stat)
 {
   struct RClass *status_cls = mrb_class_get_under(mrb, mrb_module_get(mrb, "Process"), "Status");
-  return mrb_funcall(mrb, mrb_obj_value(status_cls), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(stat));
+  mrb_value ret = mrb_funcall(mrb, mrb_obj_value(status_cls), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(stat));
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), ret);
+  return ret;
 }
 /* This method is implemented unser Seccomp root module */
 static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int detach)
