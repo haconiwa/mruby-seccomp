@@ -11,9 +11,10 @@ pid = Process.fork do
   #exec '/bin/bash', '-l'
 end
 
+p $?.inspect
 ret = Seccomp.start_trace(pid) do |syscall, _pid, ud|
   name = Seccomp.syscall_to_name(syscall)
   puts "[#{_pid}]: syscall #{name}(##{syscall}) called. (ud: #{ud})"
 end
 
-p(ret)
+p $?.exited?
