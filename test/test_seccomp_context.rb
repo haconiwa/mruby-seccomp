@@ -40,8 +40,8 @@ assert("Seccomp.start_trace") do
   ret = Seccomp.start_trace(pid) do |syscall, ud|
     count += 1
   end
-
-  assert_equal "exited", ret
+  assert_true ret.exited?
+  assert_true $?.exited?
   assert_equal 4, count
 end
 
@@ -58,8 +58,8 @@ assert("Seccomp.start_trace with forking processes") do
   ret = Seccomp.start_trace(pid) do |syscall, ud|
     count += 1
   end
-
-  assert_equal "exited", ret
+  assert_true ret.exited?
+  assert_true $?.exited?
   assert_equal 10, count
 end
 
@@ -76,6 +76,7 @@ assert("Seccomp.start_trace_detach") do
   ret = Seccomp.start_trace_detach(pid) do |syscall, ud|
     count += 1
   end
-  assert_not_equal "exited", ret
+  assert_false ret.exited?
+  assert_false $?.exited?
   assert_equal 1, count
 end

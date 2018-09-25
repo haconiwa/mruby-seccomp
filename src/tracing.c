@@ -102,6 +102,13 @@ static int mrb_seccomp_on_tracer_fork(mrb_state *mrb, pid_t child)
 
 #define MRB_PTRACE_EVENT(status) (((status >> 8) ^ SIGTRAP) >> 8)
 
+static mrb_value mrb_process_status_new(mrb_state *mrb, mrb_int pid, mrb_int stat)
+{
+  struct RClass *status_cls = mrb_class_get_under(mrb, mrb_module_get(mrb, "Process"), "Status");
+  mrb_value ret = mrb_funcall(mrb, mrb_obj_value(status_cls), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(stat));
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), ret);
+  return ret;
+}
 /* This method is implemented unser Seccomp root module */
 static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int detach)
 {
@@ -124,19 +131,20 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int de
   int children_exit = FALSE;
   while (1) {
     child = waitpid(-1, &status, WUNTRACED | WCONTINUED | __WALL);
+
     if (child == -1) {
       mrb_sys_fail(mrb, "waitpid");
     }
 
     if (WIFEXITED(status)) {
       if (child == pid) {
-        return mrb_str_new_lit(mrb, "exited");
+        return mrb_process_status_new(mrb, pid, status);
       } else {
         children_exit = TRUE;
       }
     } else if (WIFSIGNALED(status)) {
       if (child == pid) {
-        return mrb_str_new_lit(mrb, "signaled");
+        return mrb_process_status_new(mrb, pid, status);
       } else {
         children_exit = TRUE;
       }
@@ -152,7 +160,7 @@ static mrb_value mrb_seccomp_start_ptrace(mrb_state *mrb, mrb_value self, int de
             mrb_raise(mrb, E_RUNTIME_ERROR, "Something is wrong in trap event");
           }
           if (detach) {
-            return self;
+            return mrb_process_status_new(mrb, pid, status);
           }
         }
       }
