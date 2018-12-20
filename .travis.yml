@@ -4,6 +4,8 @@ compiler:
   - gcc
   - clang
 env:
+  - MRUBY_VERSION=1.4.1
+  - MRUBY_VERSION=2.0.0
   - MRUBY_VERSION=master
 addons:
   apt:
@@ -18,8 +20,6 @@ matrix:
 branches:
   only:
     - master
-before_install:
-  - sudo apt-get -qq update
 script:
   - rake test
 
