@@ -19,7 +19,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   end
 
   def spec.bundle_seccomp
-    version = Seccomp::LIBSECCOMP_VERSION
+    version = "master" # Seccomp::LIBSECCOMP_VERSION
 
     def seccomp_dir(b); "#{b.build_dir}/vendor/libseccomp"; end
     def seccomp_objs_dir(b); "#{seccomp_dir(b)}/.objs"; end
@@ -35,7 +35,8 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
         tmpdir = '/tmp'
         run_command ENV, "rm -rf #{tmpdir}/libseccomp-#{version}"
         run_command ENV, "mkdir -p #{File.dirname(seccomp_dir(build))}"
-        run_command ENV, "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
+        # run_command ENV, "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
+        run_command ENV, "git clone --depth=1 https://github.com/seccomp/libseccomp.git #{tmpdir}/libseccomp-#{version}"
         run_command ENV, "mv -f #{tmpdir}/libseccomp-#{version} #{seccomp_dir(build)}"
       end
     end
@@ -43,6 +44,9 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     file libseccomp_a(build) => seccomp_header(build) do
       sh "mkdir -p #{seccomp_objs_dir(build)}"
       Dir.chdir seccomp_dir(build) do
+        unless File.exist? "./configure"
+          run_command ENV, "./autogen.sh"
+        end
         run_command ENV, "./configure --enable-static --disable-shared --prefix=#{seccomp_objs_dir(build)}"
         run_command ENV, "make"
         run_command ENV, "make install"

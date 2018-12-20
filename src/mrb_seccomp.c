@@ -278,9 +278,8 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_LOG);
 #endif
 
-  /* Usage: SCMP_ACT_ERRNO(enoent) */
-  struct RClass *krn = mrb->kernel_module;
-  mrb_define_module_function(mrb, krn, "SCMP_ACT_ERRNO", mrb_seccomp_errno_to_action, MRB_ARGS_REQ(1));
+  /* Usage: Seccomp::SCMP_ACT_ERRNO(enoent) */
+  mrb_define_module_function(mrb, parent, "SCMP_ACT_ERRNO", mrb_seccomp_errno_to_action, MRB_ARGS_REQ(1));
 
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_EQ);
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_NE);
