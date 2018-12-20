@@ -230,6 +230,14 @@ static mrb_value mrb_seccomp_on_trap(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
+static mrb_value mrb_seccomp_errno_to_action(mrb_state *mrb, mrb_value self)
+{
+  mrb_int e;
+  mrb_get_args(mrb, "i", &e);
+  uint16_t eno = (uint16_t)e;
+  return mrb_fixnum_value(SCMP_ACT_ERRNO(eno));
+}
+
 #define MRB_SECCOMP_EXPORT_CONST(c) mrb_define_const(mrb, parent, #c, mrb_fixnum_value(c))
 
 void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
@@ -257,6 +265,22 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_ALLOW);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_TRAP);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_KILL);
+  /*
+     SCMP_ACT_LOG and SCMP_ACT_KILL_PROCESS are only available on libseccomp's master
+     and their counterpart SECCOMP_RET_LOG/SECCOMP_RET_KILL_PROCESS are available
+     since Linux 4.14
+  */
+  /* define SCMP_ACT_LOG		0x7ffc0000U */
+#ifdef SCMP_ACT_KILL_PROCESS
+  MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_KILL_PROCESS);
+#endif
+#ifdef SCMP_ACT_LOG
+  MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_LOG);
+#endif
+
+  /* Usage: SCMP_ACT_ERRNO(enoent) */
+  struct RClass *krn = mrb->kernel_module;
+  mrb_define_module_function(mrb, krn, "SCMP_ACT_ERRNO", mrb_seccomp_errno_to_action, MRB_ARGS_REQ(1));
 
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_EQ);
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_NE);
