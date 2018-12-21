@@ -18,8 +18,8 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     end
   end
 
-  def spec.bundle_seccomp
-    version = "master" # Seccomp::LIBSECCOMP_VERSION
+  def spec.bundle_seccomp(is_build_head)
+    version = is_build_head ? "master" : Seccomp::LIBSECCOMP_VERSION
 
     def seccomp_dir(b); "#{b.build_dir}/vendor/libseccomp"; end
     def seccomp_objs_dir(b); "#{seccomp_dir(b)}/.objs"; end
@@ -35,8 +35,11 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
         tmpdir = '/tmp'
         run_command ENV, "rm -rf #{tmpdir}/libseccomp-#{version}"
         run_command ENV, "mkdir -p #{File.dirname(seccomp_dir(build))}"
-        # run_command ENV, "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
-        run_command ENV, "git clone --depth=1 https://github.com/seccomp/libseccomp.git #{tmpdir}/libseccomp-#{version}"
+        unless is_build_head
+          run_command ENV, "curl -L https://github.com/seccomp/libseccomp/releases/download/v#{version}/libseccomp-#{version}.tar.gz | tar -xz -f - -C #{tmpdir}"
+        else
+          run_command ENV, "git clone --depth=1 https://github.com/seccomp/libseccomp.git #{tmpdir}/libseccomp-#{version}"
+        end
         run_command ENV, "mv -f #{tmpdir}/libseccomp-#{version} #{seccomp_dir(build)}"
       end
     end
@@ -61,7 +64,7 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     self.linker.libraries << 'seccomp'
   end
 
-  spec.bundle_seccomp
+  spec.bundle_seccomp(spec.build.cc.defines.flatten.include?("MRB_SECCOMP_USE_HEAD_LIB"))
 
   spec.add_test_dependency 'mruby-print'
   spec.add_test_dependency 'mruby-io',      mgem: 'mruby-io'

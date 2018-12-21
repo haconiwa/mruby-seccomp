@@ -9,4 +9,8 @@ MRuby::Build.new do |conf|
   conf.gem '../mruby-seccomp'
   conf.enable_debug
   conf.enable_test
+
+  if ENV['USE_HEAD']
+    conf.cc.defines << 'MRB_SECCOMP_USE_HEAD_LIB'
+  end
 end
