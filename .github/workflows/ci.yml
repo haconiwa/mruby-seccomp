@@ -31,5 +31,5 @@ jobs:
                    -v $(pwd):/src \
                    -e MRUBY_VERSION=${{ matrix.mruby_version }} \
                    haconiwa/mruby-seccomp \
-                   /bin/bash -c 'cd /src && rake test'
+                   /bin/bash -c 'cd /src && rake test'"
       continue-on-error: ${{ matrix.experimental }}
