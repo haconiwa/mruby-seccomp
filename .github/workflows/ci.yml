@@ -23,6 +23,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Packages
+      run: sudo apt-get -y -qq install curl
     - name: Run Build
       env:
         MRUBY_VERSION: ${{ matrix.mruby_version }}
