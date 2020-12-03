@@ -28,8 +28,8 @@ jobs:
         /bin/bash -c \
                    "docker run --privileged \
                    --pid=host \
-                   -v $(pwd):/src \
+                   -v $(pwd):/mruby-seccomp \
                    -e MRUBY_VERSION=${{ matrix.mruby_version }} \
                    haconiwa/mruby-seccomp \
-                   /bin/bash -c 'cd /src && rake test'"
+                   /bin/bash -c 'cd /mruby-seccomp && rake test'"
       continue-on-error: ${{ matrix.experimental }}
