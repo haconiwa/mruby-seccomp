@@ -23,6 +23,7 @@ jobs:
     - name: Build a Container
       run: |
         docker build -t haconiwa/mruby-seccomp misc/
+    - name: Run Build and Test
       run: |
         /bin/bash -c \
                    "docker run --privileged \
