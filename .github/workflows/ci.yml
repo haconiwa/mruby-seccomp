@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        mruby_version: [2.1.2, 3.0.0-preview]
+        mruby_version: [2.1.2]
         experimental:  [false]
         include:
         - mruby_version: 3.0.0-preview
