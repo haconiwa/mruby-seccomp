@@ -1,0 +1,35 @@
+name: Testing
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        mruby_version: [2.1.2]
+        experimental:  [false]
+        include:
+        - mruby_version: 3.0.0-preview
+          experimental: true
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build a Container
+      run: |
+        docker build -t haconiwa/mruby-seccomp misc/
+    - name: Run Build and Test
+      run: |
+        /bin/bash -c \
+                   "docker run --privileged \
+                   --pid=host \
+                   -v $(pwd):/mruby-seccomp \
+                   -e MRUBY_VERSION=${{ matrix.mruby_version }} \
+                   haconiwa/mruby-seccomp \
+                   /bin/bash -c 'cd /mruby-seccomp && rake test'"
+      continue-on-error: ${{ matrix.experimental }}
