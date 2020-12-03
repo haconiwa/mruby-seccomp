@@ -12,7 +12,7 @@ jobs:
       matrix:
         mruby_version: [2.1.2 3.0.0]
         experimental:  [false]
-      include:
+        include:
         - mruby_version: 3.0.0
           experimental: true
 
