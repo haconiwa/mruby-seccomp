@@ -1,0 +1,30 @@
+name: Testing
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        mruby_version: [2.1.2 3.0.0]
+        experimental:  [false]
+      include:
+        - mruby_version: 3.0.0
+          experimental: true
+
+    runs-on: ubuntu-18.04
+    # is: https://github.com/udzura/mruby-bin-bt2prom/blob/master/misc/Dockerfile
+    # TODO: introduce independent repo
+    container: docker.io/udzura/mruby-build-base:0.1.2
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Build
+      env:
+        MRUBY_VERSION: ${{ matrix.mruby_version }}
+      continue-on-error: ${{ matrix.experimental }}
+      run: rake test
