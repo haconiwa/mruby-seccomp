@@ -17,9 +17,8 @@ jobs:
           experimental: true
 
     runs-on: ubuntu-18.04
-    # is: https://github.com/udzura/mruby-bin-bt2prom/blob/master/misc/Dockerfile
-    # TODO: introduce independent repo
-    container: docker.io/udzura/mruby-build-base:0.1.2
+    # see misc/. TODO: introduce independent repo
+    container: docker.io/udzura/mruby-seccomp-base:20201203
 
     steps:
     - uses: actions/checkout@v2
