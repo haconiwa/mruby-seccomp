@@ -10,10 +10,10 @@ jobs:
   build:
     strategy:
       matrix:
-        mruby_version: [2.1.2 3.0.0]
+        mruby_version: [2.1.2, 3.0.0-preview]
         experimental:  [false]
         include:
-        - mruby_version: 3.0.0
+        - mruby_version: 3.0.0-preview
           experimental: true
 
     runs-on: ubuntu-18.04
