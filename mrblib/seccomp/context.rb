@@ -16,8 +16,20 @@ module Seccomp
       add_rule(Seccomp::SCMP_ACT_KILL, syscall, *args)
     end
 
+    def kill_process(syscall, *args)
+      add_rule(Seccomp::SCMP_ACT_KILL_PROCESS, syscall, *args)
+    end
+
     def trap(syscall, *args)
       add_rule(Seccomp::SCMP_ACT_TRAP, syscall, *args)
+    end
+
+    def errno(errno, syscall, *args)
+      add_rule(Seccomp::SCMP_ACT_ERRNO(errno), syscall, *args)
+    end
+
+    def log(syscall, *args)
+      add_rule(Seccomp::SCMP_ACT_LOG, syscall, *args)
     end
 
     def trace(syscall, userdata, *args)

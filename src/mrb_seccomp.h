@@ -14,6 +14,7 @@
 #include <mruby/error.h>
 #include <mruby/variable.h>
 
+#include <linux/seccomp.h>
 #include <seccomp.h>
 #include <signal.h>
 #include <stdlib.h>

@@ -25,14 +25,20 @@ module Seccomp
       case action
       when :kill,  :SCMP_ACT_KILL
         Seccomp::SCMP_ACT_KILL
+      when :kill_process, :SCMP_ACT_KILL_PROCESS
+        Seccomp::SCMP_ACT_KILL_PROCESS
+      when :kill_thread,  :SCMP_ACT_KILL_THREAD
+        Seccomp::SCMP_ACT_KILL_THREAD
       when :trap,  :SCMP_ACT_TRAP
         Seccomp::SCMP_ACT_TRAP
       when :allow, :SCMP_ACT_ALLOW
         Seccomp::SCMP_ACT_ALLOW
       when :errno, :SCMP_ACT_ERRNO
-        raise(NotImplementedAError, "Unsupported yet: #{action}")
+        Seccomp::SCMP_ACT_ERRNO(args[0])
       when :trace, :SCMP_ACT_TRACE
         Seccomp::SCMP_ACT_TRACE(args[0])
+      when :log,   :SCMP_ACT_LOG
+        Seccomp::SCMP_ACT_LOG
       else
         raise(ArgumentError, "Invalid action name: #{action}")
       end

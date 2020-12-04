@@ -1,0 +1,1 @@
+export MRB_SECCOMP_LIBVER=2.5.1
