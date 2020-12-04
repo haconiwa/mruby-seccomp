@@ -230,6 +230,13 @@ static mrb_value mrb_seccomp_on_trap(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
+static mrb_value mrb_seccomp_ACT_ERRNO(mrb_state *mrb, mrb_value self)
+{
+  mrb_int enr;
+  mrb_get_args(mrb, "i", &enr);
+  return mrb_fixnum_value(SCMP_ACT_ERRNO((int)enr));
+}
+
 #define MRB_SECCOMP_EXPORT_CONST(c) mrb_define_const(mrb, parent, #c, mrb_fixnum_value(c))
 
 void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
@@ -240,6 +247,7 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   parent = mrb_define_module(mrb, "Seccomp");
   mrb_define_module_function(mrb, parent, "__gen_syscall_table", mrb_seccomp_generate_syscall_table, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, parent, "on_trap", mrb_seccomp_on_trap, MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, parent, "SCMP_ACT_ERRNO", mrb_seccomp_ACT_ERRNO, MRB_ARGS_REQ(1));
 
   context = mrb_define_class_under(mrb, parent, "Context", mrb->object_class);
   MRB_SET_INSTANCE_TT(context, MRB_TT_DATA);
