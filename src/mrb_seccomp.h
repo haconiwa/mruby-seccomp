@@ -19,6 +19,9 @@
 #include <signal.h>
 #include <stdlib.h>
 
+void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
+void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent);
+
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb);
 
 #endif

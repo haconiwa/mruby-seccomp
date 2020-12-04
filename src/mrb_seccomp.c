@@ -241,6 +241,8 @@ static mrb_value mrb_seccomp_ACT_ERRNO(mrb_state *mrb, mrb_value self)
 
 void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
 
+void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent);
+
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
 {
   struct RClass *parent, *context, *arg_cmp;
@@ -261,6 +263,8 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, arg_cmp, "initialize", mrb_seccomp_arg_cmp_init, MRB_ARGS_ARG(3, 4));
 
   mrb_mruby_seccomp_tracing_init(mrb, parent);
+
+  mrb_mruby_seccomp_notification_init(mrb, parent);
 
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_ALLOW);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_TRAP);
