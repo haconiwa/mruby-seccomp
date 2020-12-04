@@ -2,6 +2,10 @@ require 'open3'
 require 'fileutils'
 $LOAD_PATH << File.expand_path('../mrblib', __FILE__)
 
+unless defined? DEFAULT_LIBSECCOMP_VERSION
+  DEFAULT_LIBSECCOMP_VERSION = "2.3.1"
+end
+
 MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   require 'seccomp/versions'
 
@@ -18,8 +22,16 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
     end
   end
 
+  def spec.get_libseccomp_version
+    if self.cc.defines.flatten.find{|d| d =~ /^MRB_SECCOMP_LIBVER=([\.0-9]+)$/ }
+      return $1
+    else
+      DEFAULT_LIBSECCOMP_VERSION
+    end
+  end
+
   def spec.bundle_seccomp
-    version = Seccomp::LIBSECCOMP_VERSION
+    version = get_libseccomp_version
 
     def seccomp_dir(b); "#{b.build_dir}/vendor/libseccomp"; end
     def seccomp_objs_dir(b); "#{seccomp_dir(b)}/.objs"; end
