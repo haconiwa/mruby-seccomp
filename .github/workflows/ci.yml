@@ -11,9 +11,11 @@ jobs:
     strategy:
       matrix:
         mruby_version: [2.1.2]
+        libseccomp_version: [2.3.1, 2.5.1]
         experimental:  [false]
         include:
         - mruby_version: 3.0.0-preview
+          libseccomp_version: 2.5.1
           experimental: true
 
     runs-on: ubuntu-18.04
