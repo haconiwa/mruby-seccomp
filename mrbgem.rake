@@ -75,5 +75,6 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
   spec.add_test_dependency 'mruby-io',      mgem: 'mruby-io'
   spec.add_test_dependency 'mruby-process', mgem: 'mruby-process'
   spec.add_test_dependency 'mruby-uname',   mgem: 'mruby-uname'
+  spec.add_test_dependency 'mruby-errno',   mgem: 'mruby-errno'
   spec.add_test_dependency 'mruby-exec',    github: 'haconiwa/mruby-exec'
 end

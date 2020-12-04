@@ -2,6 +2,14 @@
 ## Seccomp Test
 ##
 
+def redirect_stdout(fpath)
+  MRubySeccmopTestUtil.dup2 File.open(fpath, 'w').fileno, 1
+end
+
+def redirect_stderr(fpath)
+  MRubySeccmopTestUtil.dup2 File.open(fpath, 'w').fileno, 2
+end
+
 assert("Seccomp::Context.new") do
   ctx = Seccomp::Context.new Seccomp::SCMP_ACT_KILL
   assert_true(ctx.is_a? Seccomp::Context)
@@ -14,12 +22,56 @@ assert("Seccomp::Context#kill") do
 
   pid = Process.fork do
     ctx.load
+    redirect_stderr '/dev/null'
     exec "/usr/bin/env", "uname", "-a"
   end
   pid, ret = Process.waitpid2(pid)
 
   assert_true(ret.signaled?)
   assert_equal(ret.termsig, 31) # SYGSIS in Linux
+end
+
+if Seccomp.const_defined?(:SCMP_ACT_LOG)
+  assert("Seccomp::Context#audit") do
+    ctx = Seccomp.new(default: :allow) do |rule|
+      rule.log(:uname)
+    end
+
+    pid = Process.fork do
+      ctx.load
+      redirect_stdout '/dev/null'
+      exec "/usr/bin/env", "uname", "-a"
+    end
+    pid, ret = Process.waitpid2(pid)
+
+    assert_true(ret.exited?)
+    assert_equal(0, ret.exitstatus, "SCMP_ACT_LOG occurs no error")
+  end
+end
+
+assert("Seccomp::Context#errno") do
+  errno = Errno::EBUSY.new.errno
+
+  ctx = Seccomp.new(default: :allow) do |rule|
+    rule.errno(errno, :uname)
+  end
+
+  errfile = "/tmp/#{$$}.err"
+  pid = Process.fork do
+    ctx.load
+    redirect_stdout '/dev/null'
+    redirect_stderr errfile
+    exec "/usr/bin/env", "uname", "-a"
+  end
+  pid, ret = Process.waitpid2(pid)
+
+  assert_true(ret.exited?)
+  assert_equal(1, ret.exitstatus, "SCMP_ACT_ERRNO occurs normal error")
+
+  f = File.open(errfile).read(2048)
+  assert_true(f.include?("Device or resource busy"), "Includes 'Device or resource busy'")
+
+  system "rm -f #{errfile}"
 end
 
 assert("Seccomp::Context.new") do
