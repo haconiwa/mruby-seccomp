@@ -26,6 +26,8 @@ jobs:
       run: |
         docker build -t haconiwa/mruby-seccomp misc/
     - name: Run Build and Test
+      env:
+        MEB_SECCOMP_LIBVER: ${{ matrix.libseccomp_version }}
       run: |
         /bin/bash -c \
                    "docker run --privileged \
