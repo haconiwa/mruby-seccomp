@@ -2,5 +2,5 @@
 FROM ubuntu:bionic
 
 RUN apt-get -y update && \
-    apt-get -y install zip git ruby rake build-essential bison curl && \
+    apt-get -y install zip git ruby rake build-essential bison curl gperf && \
     apt-get clean
