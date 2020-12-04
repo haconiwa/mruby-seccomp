@@ -26,14 +26,13 @@ jobs:
       run: |
         docker build -t haconiwa/mruby-seccomp misc/
     - name: Run Build and Test
-      env:
-        MEB_SECCOMP_LIBVER: ${{ matrix.libseccomp_version }}
       run: |
         /bin/bash -c \
                    "docker run --privileged \
                    --pid=host \
                    -v $(pwd):/mruby-seccomp \
                    -e MRUBY_VERSION=${{ matrix.mruby_version }} \
+                   -e MEB_SECCOMP_LIBVER=${{ matrix.libseccomp_version }} \
                    haconiwa/mruby-seccomp \
                    /bin/bash -c 'cd /mruby-seccomp && rake test'"
       continue-on-error: ${{ matrix.experimental }}
