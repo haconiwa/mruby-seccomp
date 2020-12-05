@@ -33,7 +33,10 @@ p2 = fork do
       begin
         mem = File.open("/proc/#{n.pid}/mem", "r")
         mem.sysseek(n.raw_args[0])
-        path = mem.sysread(1024) # dummy
+        path = ""
+        while path.include?("\0")
+          path << mem.sysread(1024)
+        end
         path = path.split("\0")[0]
         puts "calling: mkdir(#{path.inspect}, #{'%o' % n.raw_args[1]})"
       rescue Errno::EACCES => e
