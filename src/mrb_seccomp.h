@@ -24,4 +24,8 @@ void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent);
 
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb);
 
+#if SCMP_VER_MAJOR == 2 && SCMP_VER_MINOR >= 5
+  #define MRB_SECCOMP_NOTIF_ENABLED
+#endif
+
 #endif

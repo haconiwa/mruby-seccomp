@@ -32,6 +32,10 @@ module Seccomp
       add_rule(Seccomp::SCMP_ACT_LOG, syscall, *args)
     end
 
+    def notify(syscall, *args)
+      add_rule(Seccomp::SCMP_ACT_NOTIFY, syscall, *args)
+    end
+
     def trace(syscall, userdata, *args)
       new_args = []
       args.each_with_index do |a, i|

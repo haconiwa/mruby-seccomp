@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <mruby/variable.h>
+
 /*
  * See: https://man7.org/tlpi/code/online/dist/sockets/scm_functions.c.html
  * This source code is also provided unser GNU Lesser General Public License, version 3.
@@ -84,6 +86,62 @@ static mrb_value mrb_seccomp_util_recvfd(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(fd);
 }
 
+static mrb_value mrb_seccomp_notif_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_int notifyfd;
+  mrb_get_args(mrb, "i", &notifyfd);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@notify_fd"), mrb_fixnum_value(notifyfd));
+  return self;
+}
+
+static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value self)
+{
+  struct seccomp_notif *req;
+  struct seccomp_notif_resp *resp;
+  mrb_value blk;
+  mrb_value _fd = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@notify_fd"));
+  int fd = mrb_fixnum(_fd);
+  mrb_get_args(mrb, "&", &blk);
+
+  if(seccomp_notify_alloc(&req, &resp) == -1)
+    mrb_sys_fail(mrb, "seccomp_notify_alloc");
+
+  if(seccomp_notify_receive(fd, req) == -1)
+    mrb_sys_fail(mrb, "seccomp_notify_receive");
+
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pid"), mrb_fixnum_value(req->pid));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@notify_id"), mrb_float_value(mrb, req->id));
+  /* TODO: handling req->data.args in a dynamic way... */
+
+  mrb_value args = mrb_ary_new_capa(mrb, 6);
+  for(mrb_int i = 0; i < 6; ++i )
+    mrb_ary_set(mrb, args, i, mrb_float_value(mrb, req->data.args[i]));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@raw_args"), args);
+
+  mrb_yield(mrb, blk, self);
+
+  mrb_value val, error;
+  val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@retval"));
+  error = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@reterror"));
+  if(mrb_nil_p(error))
+    resp->error = 0;
+  else
+    resp->error = mrb_fixnum(error);
+
+  resp->val = mrb_fixnum(val);
+
+  if(seccomp_notify_id_valid(fd, req->id) == -1) {
+    seccomp_notify_free(req, resp);
+    mrb_raise(mrb, mrb->eStandardError_class, "seccomp_notify_id_valid: maybe process already dead");
+  }
+
+  if(seccomp_notify_respond(fd, resp) == -1)
+    mrb_sys_fail(mrb, "seccomp_notify_respond");
+
+  seccomp_notify_free(req, resp);
+  return mrb_nil_value();
+}
+
 /*
 static mrb_value mrb_seccomp_ptrace(mrb_state *mrb, mrb_value self)
 {
@@ -93,6 +151,10 @@ static mrb_value mrb_seccomp_ptrace(mrb_state *mrb, mrb_value self)
 
 void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent)
 {
+  struct RClass *notif = mrb_define_class_under(mrb, parent, "Notification", mrb->object_class);
+  mrb_define_method(mrb, notif, "initialize", mrb_seccomp_notif_init, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, notif, "respond_internal", mrb_seccomp_notif_respond_internal, MRB_ARGS_BLOCK());
+
   mrb_define_module_function(mrb, parent, "sendfd", mrb_seccomp_util_sendfd, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, parent, "recvfd", mrb_seccomp_util_recvfd, MRB_ARGS_REQ(1));
 }
