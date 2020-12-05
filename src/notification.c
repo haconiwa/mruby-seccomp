@@ -11,6 +11,9 @@
  * See: https://man7.org/tlpi/code/online/dist/sockets/scm_functions.c.html
  * This source code is also provided unser GNU Lesser General Public License, version 3.
  */
+
+#ifdef MRB_SECCOMP_NOTIF_ENABLED
+
 static mrb_value mrb_seccomp_util_sendfd(mrb_state *mrb, mrb_value self)
 {
   struct msghdr msgh;
@@ -179,3 +182,12 @@ void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent)
   mrb_define_module_function(mrb, parent, "sendfd", mrb_seccomp_util_sendfd, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, parent, "recvfd", mrb_seccomp_util_recvfd, MRB_ARGS_REQ(1));
 }
+
+#else
+
+void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent)
+{
+  /* No implementation */
+}
+
+#endif
