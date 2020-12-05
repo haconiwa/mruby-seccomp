@@ -94,6 +94,7 @@ static mrb_value mrb_seccomp_notif_init(mrb_state *mrb, mrb_value self)
   mrb_int notifyfd;
   mrb_get_args(mrb, "i", &notifyfd);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@notify_fd"), mrb_fixnum_value(notifyfd));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@continue"), mrb_false_value());
   return self;
 }
 
@@ -130,12 +131,17 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
   error = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@reterror"));
 
   resp->id = req->id;
-  if(mrb_nil_p(error))
-    resp->error = 0;
-  else
-    resp->error = mrb_fixnum(error);
 
-  resp->val = mrb_fixnum(val);
+  if(mrb_bool(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@continue")))) {
+    resp->flags |= SECCOMP_USER_NOTIF_FLAG_CONTINUE;
+  } else {
+    if(mrb_nil_p(error))
+      resp->error = 0;
+    else
+      resp->error = mrb_fixnum(error);
+
+    resp->val = mrb_fixnum(val);
+  }
 
   if(seccomp_notify_id_valid(fd, req->id) == -1) {
     seccomp_notify_free(req, resp);

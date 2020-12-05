@@ -17,7 +17,9 @@ p1 = fork do
     end
     sleep 1
   end
-  puts "Finished..."
+
+  system 'ls -l /tmp/ | grep foo && rmdir /tmp/foo-2'
+  puts "Cleanup && Finish..."
 end
 
 p2 = fork do
@@ -29,12 +31,12 @@ p2 = fork do
       addr = '0x%x' % n.raw_args[0]
       perm = '0%o' % n.raw_args[1]
       puts "Received: PID = #{n.pid}, ARGS = #{[addr, perm].inspect}"
+      path = ""
 
       begin
         mem = File.open("/proc/#{n.pid}/mem", "r")
         mem.sysseek(n.raw_args[0])
-        path = ""
-        while path.include?("\0")
+        until path.include?("\0")
           path << mem.sysread(1024)
         end
         path = path.split("\0")[0]
@@ -43,8 +45,13 @@ p2 = fork do
         puts "[!] Cannot open memory data. Skip"
       end
 
-      n.retval = -1
-      n.reterror = -Errno::EBUSY.new.errno
+      if path == "/tmp/foo-2"
+        puts "Do continue"
+        n.continue = true
+      else
+        n.retval = -1
+        n.reterror = -Errno::EBUSY.new.errno
+      end
     end
   end
 end
