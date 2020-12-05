@@ -103,6 +103,8 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
   int fd = mrb_fixnum(_fd);
   mrb_get_args(mrb, "&", &blk);
 
+  int save = mrb_gc_arena_save(mrb);
+
   if(seccomp_notify_alloc(&req, &resp) == -1)
     mrb_sys_fail(mrb, "seccomp_notify_alloc");
 
@@ -123,6 +125,8 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
   mrb_value val, error;
   val = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@retval"));
   error = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@reterror"));
+
+  resp->id = req->id;
   if(mrb_nil_p(error))
     resp->error = 0;
   else
@@ -139,7 +143,23 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
     mrb_sys_fail(mrb, "seccomp_notify_respond");
 
   seccomp_notify_free(req, resp);
+
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@pid"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@notify_id"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@raw_args"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@retval"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@reterror"), mrb_nil_value());
+
+  mrb_gc_arena_restore(mrb, save);
+
   return mrb_nil_value();
+}
+
+static mrb_value mrb_seccomp_notif_is_id_valid(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@notify_fd")));
+  int id = mrb_fixnum(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@notify_id")));
+  return mrb_bool_value(seccomp_notify_id_valid(fd, id));
 }
 
 /*
@@ -154,6 +174,7 @@ void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent)
   struct RClass *notif = mrb_define_class_under(mrb, parent, "Notification", mrb->object_class);
   mrb_define_method(mrb, notif, "initialize", mrb_seccomp_notif_init, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, notif, "respond_internal", mrb_seccomp_notif_respond_internal, MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, notif, "id_valid?", mrb_seccomp_notif_is_id_valid, MRB_ARGS_NONE());
 
   mrb_define_module_function(mrb, parent, "sendfd", mrb_seccomp_util_sendfd, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, parent, "recvfd", mrb_seccomp_util_recvfd, MRB_ARGS_REQ(1));
