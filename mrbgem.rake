@@ -71,8 +71,9 @@ MRuby::Gem::Specification.new('mruby-seccomp') do |spec|
 
   spec.bundle_seccomp
 
+  spec.add_dependency 'mruby-socket'
   spec.add_test_dependency 'mruby-print'
-  spec.add_test_dependency 'mruby-io',      mgem: 'mruby-io'
+  spec.add_test_dependency 'mruby-io'
   spec.add_test_dependency 'mruby-process', mgem: 'mruby-process'
   spec.add_test_dependency 'mruby-uname',   mgem: 'mruby-uname'
   spec.add_test_dependency 'mruby-errno',   mgem: 'mruby-errno'

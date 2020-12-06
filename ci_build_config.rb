@@ -10,6 +10,7 @@ MRuby::Build.new do |conf|
   conf.gem mgem: 'mruby-process'
   conf.gem mgem: 'mruby-uname'
   conf.gem mgem: 'mruby-errno'
+  conf.gem mgem: 'mruby-dir'
   conf.gem github: 'haconiwa/mruby-exec'
 
   conf.gem '../mruby-seccomp'

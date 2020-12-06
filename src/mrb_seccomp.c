@@ -175,7 +175,10 @@ static mrb_value mrb_seccomp_add_rule(mrb_state *mrb, mrb_value self)
 static mrb_value mrb_seccomp_load(mrb_state *mrb, mrb_value self)
 {
   mrb_seccomp_data *data = DATA_PTR(self);
-  return mrb_fixnum_value(seccomp_load(data->ctx));
+  int ret = seccomp_load(data->ctx);
+  if(ret < 0)
+    mrb_sys_fail(mrb, "seccomp_load");
+  return mrb_fixnum_value(ret);
 }
 
 static mrb_value mrb_seccomp_reset(mrb_state *mrb, mrb_value self)
@@ -207,6 +210,25 @@ static void mrb_seccomp_sigaction(int signo, siginfo_t *siginfo, void *_unused)
   mrb_value proc = mrb_iv_get(mrb, mrb_obj_value(seccomp), mrb_intern_lit(mrb, "__ontrap_proc"));
   mrb_funcall(mrb, proc, "call", 1, mrb_fixnum_value(siginfo->si_syscall));
 }
+
+#ifdef MRB_SECCOMP_NOTIF_ENABLED
+static mrb_value mrb_seccomp_notify_fd(mrb_state *mrb, mrb_value self)
+{
+  mrb_seccomp_data *data = DATA_PTR(self);
+  int ret = seccomp_notify_fd(data->ctx);
+  if(ret < 0)
+    mrb_raise(mrb, mrb->eStandardError_class, "ctx not loaded");
+
+  return mrb_fixnum_value(ret);
+}
+#else
+static mrb_value mrb_seccomp_notify_fd(mrb_state *mrb, mrb_value self)
+{
+  mrb_raise(mrb, E_NOTIMP_ERROR,
+            "seccomp_notify_fd() is not supported by current version of libseccomp");
+  return mrb_nil_value();
+}
+#endif
 
 static mrb_value mrb_seccomp_on_trap(mrb_state *mrb, mrb_value self)
 {
@@ -241,6 +263,8 @@ static mrb_value mrb_seccomp_ACT_ERRNO(mrb_state *mrb, mrb_value self)
 
 void mrb_mruby_seccomp_tracing_init(mrb_state *mrb, struct RClass *parent);
 
+void mrb_mruby_seccomp_notification_init(mrb_state *mrb, struct RClass *parent);
+
 void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
 {
   struct RClass *parent, *context, *arg_cmp;
@@ -255,12 +279,15 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, context, "__add_rule", mrb_seccomp_add_rule, MRB_ARGS_REQ(3));
   mrb_define_method(mrb, context, "load", mrb_seccomp_load, MRB_ARGS_NONE());
   mrb_define_method(mrb, context, "reset", mrb_seccomp_reset, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, context, "notify_fd", mrb_seccomp_notify_fd, MRB_ARGS_NONE());
 
   arg_cmp = mrb_define_class_under(mrb, parent, "ArgOperator", mrb->object_class);
   MRB_SET_INSTANCE_TT(arg_cmp, MRB_TT_DATA);
   mrb_define_method(mrb, arg_cmp, "initialize", mrb_seccomp_arg_cmp_init, MRB_ARGS_ARG(3, 4));
 
   mrb_mruby_seccomp_tracing_init(mrb, parent);
+
+  mrb_mruby_seccomp_notification_init(mrb, parent);
 
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_ALLOW);
   MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_TRAP);
@@ -274,6 +301,9 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   #ifdef SCMP_ACT_LOG
     MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_LOG);
   #endif
+  #ifdef SCMP_ACT_NOTIFY
+    MRB_SECCOMP_EXPORT_CONST(SCMP_ACT_NOTIFY);
+  #endif
 
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_EQ);
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_NE);
@@ -283,6 +313,8 @@ void mrb_mruby_seccomp_gem_init(mrb_state *mrb)
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_LT);
   MRB_SECCOMP_EXPORT_CONST(SCMP_CMP_MASKED_EQ);
   DONE;
+
+  /* seccomp_api_set(5); */
 }
 
 void mrb_mruby_seccomp_gem_final(mrb_state *mrb)

@@ -39,6 +39,8 @@ module Seccomp
         Seccomp::SCMP_ACT_TRACE(args[0])
       when :log,   :SCMP_ACT_LOG
         Seccomp::SCMP_ACT_LOG
+      when :notify, :SCMP_ACT_NOTIFY
+        Seccomp::SCMP_ACT_NOTIFY
       else
         raise(ArgumentError, "Invalid action name: #{action}")
       end
