@@ -133,7 +133,12 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
   resp->id = req->id;
 
   if(mrb_bool(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@continue")))) {
-    resp->flags |= SECCOMP_USER_NOTIF_FLAG_CONTINUE;
+    #ifdef SECCOMP_USER_NOTIF_FLAG_CONTINUE
+      resp->flags |= SECCOMP_USER_NOTIF_FLAG_CONTINUE;
+    #else
+      mrb_raise(mrb, E_NOTIMP_ERROR,
+                "Seccomp::Notification#continue not supported on this system")
+    #endif
   } else {
     if(mrb_nil_p(error))
       resp->error = 0;
@@ -145,7 +150,8 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
 
   if(seccomp_notify_id_valid(fd, req->id) == -1) {
     seccomp_notify_free(req, resp);
-    mrb_raise(mrb, mrb->eStandardError_class, "seccomp_notify_id_valid: maybe process already dead");
+    mrb_raise(mrb, mrb->eStandardError_class,
+              "seccomp_notify_id_valid: maybe process already dead");
   }
 
   if(seccomp_notify_respond(fd, resp) == -1)
