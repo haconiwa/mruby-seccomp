@@ -137,7 +137,7 @@ static mrb_value mrb_seccomp_notif_respond_internal(mrb_state *mrb, mrb_value se
       resp->flags |= SECCOMP_USER_NOTIF_FLAG_CONTINUE;
     #else
       mrb_raise(mrb, E_NOTIMP_ERROR,
-                "Seccomp::Notification#continue not supported on this system")
+                "Seccomp::Notification#continue not supported on this system");
     #endif
   } else {
     if(mrb_nil_p(error))
