@@ -1,4 +1,4 @@
-# mruby-seccomp   [![Build Status](https://travis-ci.org/haconiwa/mruby-seccomp.svg?branch=master)](https://travis-ci.org/haconiwa/mruby-seccomp)
+# mruby-seccomp [![Build Status](https://github.com/haconiwa/mruby-seccomp/workflows/Testing/badge.svg)](https://github.com/haconiwa/mruby-seccomp/actions?query=workflow%3ATesting)
 
 A mruby gem to access libseccomp API
 
