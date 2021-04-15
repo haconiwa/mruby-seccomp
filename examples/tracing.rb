@@ -1,4 +1,5 @@
 pid = Process.fork do
+  sleep 0.1 # magic sleep
   context = Seccomp.new(default: :allow) do |rule|
     rule.trace(:getuid, 0)
     rule.trace(:uname, 0)
@@ -11,11 +12,7 @@ pid = Process.fork do
   #exec '/bin/bash', '-l'
 end
 
-p $?.inspect
 ret = Seccomp.start_trace(pid) do |syscall, _pid, ud|
   name = Seccomp.syscall_to_name(syscall)
   puts "[#{_pid}]: syscall #{name}(##{syscall}) called. (ud: #{ud})"
 end
-
-p ret.exited?
-p $?.exited?
